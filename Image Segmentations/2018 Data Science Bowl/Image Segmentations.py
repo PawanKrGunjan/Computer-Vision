@@ -11,7 +11,8 @@ print('scikit-image :', skimage.__version__)
 print('Matplotlib :', matplotlib.__version__)
 
 # Load the model
-model_path = 'D:/Computer-Vision/Image Segmentations/saved_model/model.h5'
+model_path = 'D:/Computer-Vision/Image Segmentations/2018 Data Science Bowl/Image_Segmentations_app/saved_model/model.h5'
+
 model = tf.keras.models.load_model(model_path)
 print(model.summary())
 
@@ -42,7 +43,8 @@ def display(display_list):
         plt.axis('off')
     plt.show()
 
-test_image_path = 'D:/Computer-Vision/Image Segmentations/test_image/test1.png'
+model_path = 'D:/Computer-Vision/Image Segmentations/2018 Data Science Bowl/Image_Segmentations_app/test_image/test1.png'
+
 test_image = load_resize_input_images(test_image_path)
 print(test_image.shape)
 prediction = model.predict(test_image[tf.newaxis, ...])[0]

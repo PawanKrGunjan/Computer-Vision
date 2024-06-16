@@ -9,7 +9,7 @@ IMG_WIDTH = 128
 IMG_HEIGHT = 128
 
 # Load TensorFlow model
-model_path = 'D:/Computer-Vision/Image Segmentations/Image_Segmentations_app/saved_model/model.h5'
+model_path = 'D:/Computer-Vision/Image Segmentations/2018 Data Science Bowl/Image_Segmentations_app/saved_model/model.h5'
 model = tf.keras.models.load_model(model_path)
 
 def load_resize_input_images(img_pil):
