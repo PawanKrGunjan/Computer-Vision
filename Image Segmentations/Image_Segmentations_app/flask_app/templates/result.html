@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Segmentation Result</title>
+</head>
+<body>
+    <h1>Segmentation Result</h1>
+    <h3>Input Image</h3>
+    <img src="{{ url_for('uploaded_file', filename=input_image) }}" alt="Input Image">
+    <h3>Generated Mask</h3>
+    <img src="{{ url_for('result_file', filename=mask_image) }}" alt="Generated Mask">
+    <br>
+    <a href="{{ url_for('result_file', filename=mask_image) }}" download>Download Mask</a>
+</body>
+</html>
