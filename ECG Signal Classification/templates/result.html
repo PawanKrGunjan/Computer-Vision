@@ -1,0 +1,18 @@
+<!-- templates/result.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECG Classification Results</title>
+</head>
+<body>
+    <h1>Prediction Results</h1>
+    <ul>
+        {% for label in labels %}
+            <li>{{ label }}</li>
+        {% endfor %}
+    </ul>
+    <a href="/">Upload another file</a>
+</body>
+</html>
