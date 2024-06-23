@@ -1,9 +1,12 @@
+import os
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 import wfdb
 import numpy as np
 from tqdm import tqdm
 import tensorflow as tf
 from tensorflow import keras
-import os
+
+
 
 class ECG_Signal_Classifications:
     def __init__(self, model_dir):
@@ -65,10 +68,12 @@ class ECG_Signal_Classifications:
                 pred_labels.append(pred_label)
         
         return pred_labels
-    
+
+"""
 # Trained_Model_path
-model_dir='D:/Computer-Vision/ECG Signal Classification/model/best_model.h5'
+model_dir='D:/Computer-Vision/ECG Signal Classification/model/ECG_model.h5'
 data_dir="D:/Computer-Vision/ECG Signal Classification/mit-bih-arrhythmia-database/mit-bih-arrhythmia-database-1.0.0/100.dat"
 ECG=ECG_Signal_Classifications(model_dir)
 print('*'*25)
 print(ECG.predictions(data_dir))
+"""
