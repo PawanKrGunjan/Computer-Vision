@@ -4,7 +4,7 @@ import os
 from utils import ECG_Signal_Classifications
 
 # Trained_Model_path
-model_dir='D:/Computer-Vision/ECG Signal Classification/model/ECG_model.h5'
+model_dir=os.path.join(os.getcwd(),'model/ECG_model.h5')
 ECG=ECG_Signal_Classifications(model_dir)
 
 app = Flask(__name__)
@@ -47,5 +47,9 @@ def predict():
     print(predicted_labels)
     return render_template('result.html', labels=predicted_labels)
 
+@app.route('/health')
+def health_check():
+    return "OK", 200
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(port=5000, debug=True)

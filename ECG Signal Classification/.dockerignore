@@ -1,0 +1,8 @@
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+uploads
+mit-bih-arrhythmia-database
+*.png
+*.csv
