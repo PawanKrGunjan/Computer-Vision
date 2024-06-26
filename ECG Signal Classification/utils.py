@@ -7,7 +7,6 @@ import tensorflow as tf
 from tensorflow import keras
 
 
-
 class ECG_Signal_Classifications:
     def __init__(self, model_dir):
         self.model_path= model_dir
@@ -68,12 +67,3 @@ class ECG_Signal_Classifications:
                 pred_labels.append(pred_label)
         
         return pred_labels
-
-"""
-# Trained_Model_path
-model_dir='D:/Computer-Vision/ECG Signal Classification/model/ECG_model.h5'
-data_dir="D:/Computer-Vision/ECG Signal Classification/mit-bih-arrhythmia-database/mit-bih-arrhythmia-database-1.0.0/100.dat"
-ECG=ECG_Signal_Classifications(model_dir)
-print('*'*25)
-print(ECG.predictions(data_dir))
-"""
