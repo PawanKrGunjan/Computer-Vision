@@ -1,0 +1,8 @@
+# Object file
+*.o
+
+# Ada Library Information
+*.ali
+
+saved_model/
+ANPR_IMAGAS1/
