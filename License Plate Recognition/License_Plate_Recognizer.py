@@ -21,7 +21,7 @@ class LicensePlateRecognizer:
     def load_model(self, saved_model):
         self.yolov8 = YOLO(os.path.join(saved_model, 'yolov8.pt'))
         print('\n***YOLOv8 Model Successfully Loaded***\n')
-        ch = os.path.join(saved_model, 'License_Plate_Recognizer')
+        ch = os.path.join(saved_model, 'License_Number_Plate_Recognizer')
         self.preprocessor = TrOCRProcessor.from_pretrained(ch)
         self.ocr_model = VisionEncoderDecoderModel.from_pretrained(ch)
         print('\n***OCR Model Successfully Loaded***\n')
@@ -84,13 +84,17 @@ class LicensePlateRecognizer:
                 Image.open("output_with_plate_number.jpg").show(title=f"License Plate Number: {plate_number}")
 
             return plate_number
+    def live_video_or_webcam(self, video_path=None):
+        # If video_path is provided, use it, otherwise use the webcam
+        if video_path:
+            cap = cv2.VideoCapture(video_path)
+        else:
+            cap = cv2.VideoCapture(0)
 
-    def live_webcam(self):
-        cap = cv2.VideoCapture(0)
         while True:
             ret, frame = cap.read()
             if not ret:
-                print("Failed to grab frame")
+                print("End of video or failed to grab frame")
                 break
 
             # Process the current frame
@@ -124,14 +128,17 @@ recognizer = LicensePlateRecognizer()
 saved_model = 'saved_model'
 recognizer.load_model(saved_model)
 
-recognizer.live_webcam()
-"""
-# Define paths
-license_plate_dir = 'ANPR_IMAGAS1'
 
+# Example usage
+license_plate_dir = 'Dataset/video/lp3.mp4'
+
+recognizer.live_video_or_webcam(license_plate_dir)  # Use video file
+recognizer.live_video_or_webcam()  # Use webcam if no video path is provided
+
+"""
+license_plate_dir= "D:\Computer-Vision\License Plate Recognition\Dataset\ANPR_IMAGAS1"
 # List all files in the train directory
 image_files = os.listdir(license_plate_dir)
-
 
 # Randomly select 50 images
 random_images = random.sample(image_files, 5)
