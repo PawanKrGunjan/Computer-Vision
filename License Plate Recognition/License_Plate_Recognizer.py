@@ -66,7 +66,7 @@ class LicensePlateRecognizer:
         generated_text = self.preprocessor.batch_decode(generated_ids, skip_special_tokens=True)[0]
         return generated_text
 
-    def process_frame(self, frame, save):
+    def process_frame(self, frame, save=False):
         bounding_box = self.license_plate_detector(frame)
         if bounding_box['license_plate'] is not None:
             cropped=bounding_box['license_plate']
@@ -83,7 +83,7 @@ class LicensePlateRecognizer:
             plate_number = plate_number.replace('-', ' ')
             font = cv2.FONT_HERSHEY_SIMPLEX
             font_scale = 0.75
-            color = (0, 255, 0)  # Green color for text
+            color = (0, 255, 0) 
             thickness = 2
             text_position = (bounding_box['Box'][0], bounding_box['Box'][1] - 10)
 
@@ -95,8 +95,9 @@ class LicensePlateRecognizer:
         # Load the image
         image = cv2.imread(image_path)
         self.original_plate_number = os.path.splitext(os.path.basename(image_path))[0]
-        
+
         # Process the image
+        plate_number=0
         plate_number, processed_image = self.process_frame(image, save=True)
         if show==True:
             try:
