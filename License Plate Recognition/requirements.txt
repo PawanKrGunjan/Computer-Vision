@@ -1,0 +1,6 @@
+opencv-python-headless
+torch
+torchvision
+Pillow
+ultralytics
+transformers
