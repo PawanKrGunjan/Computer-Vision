@@ -1,11 +1,20 @@
 import os
 import shutil
 import cv2
-#from tkinter import Tk, Label, Button, Canvas, Frame, Checkbutton, IntVar, Scrollbar, VERTICAL, RIGHT, LEFT, Y, BOTH, DISABLED, NORMAL
 from tkinter import Tk, Frame, Canvas, Button, Label, Checkbutton, Scrollbar, IntVar, LabelFrame, Y, VERTICAL, RIGHT, LEFT, BOTH, DISABLED, NORMAL
-
 from PIL import Image, ImageTk
 from ultralytics import YOLO
+
+class MockBox:
+    def __init__(self, xyxy, cls, conf=1.0):
+        self.xyxy = [xyxy]   # list with one element (coordinates)
+        self.cls = cls       # class id as int
+        self.conf = conf     # confidence (float)
+
+class MockResults:
+    def __init__(self, boxes):
+        self.boxes = boxes  # list of MockBox
+
 
 class LabelApp:
     def __init__(self, root, image_paths):
@@ -121,25 +130,53 @@ class LabelApp:
         self.image_path = self.image_paths[self.index]
         self.image = cv2.imread(self.image_path)
         self.h, self.w = self.image.shape[:2]
+        self.drawing_mode = False  # reset drawing mode
 
-        self.drawing_mode = False  # reset drawing mode when loading new image
-
-        self.results = model(self.image_path)[0]
-
-        # Clear manual boxes display and variables
+        # Clear manual boxes
         self.boxes.clear()
         for cb in self.manual_boxes_checkbuttons:
             cb.destroy()
         self.manual_boxes_vars.clear()
         self.manual_boxes_checkbuttons.clear()
 
-        # Clear prediction checkboxes and populate them if not drawing mode
+        # Clear predictions
         self.clear_prediction_checkboxes()
+
+        # Decide whether to use model or label file
+        if hasattr(self, "label_from_file") and self.label_from_file:
+            self.label_from_file = False
+            self.results = self.load_labels_as_results(self.image_path)
+        else:
+            self.results = model(self.image_path)[0]
+
+        # Populate prediction checkboxes or manual label boxes
         self.populate_prediction_checkboxes()
 
         self.next_btn.config(state=DISABLED)
         self.update_status()
         self.display_image_and_boxes()
+
+    def load_labels_as_results(self, image_path):
+        txt_path = os.path.splitext(image_path)[0] + ".txt"
+        boxes = []
+
+        if not os.path.exists(txt_path):
+            return MockResults([])
+
+        with open(txt_path, "r") as f:
+            for line in f:
+                parts = line.strip().split()
+                if len(parts) != 5:
+                    continue
+                cls_id, x_center, y_center, w, h = map(float, parts)
+                x1 = (x_center - w / 2) * self.w
+                y1 = (y_center - h / 2) * self.h
+                x2 = (x_center + w / 2) * self.w
+                y2 = (y_center + h / 2) * self.h
+                box = MockBox([x1, y1, x2, y2], int(cls_id), conf=1.0)
+                boxes.append(box)
+
+        return MockResults(boxes)
 
     def clear_prediction_checkboxes(self):
         # Remove all widgets from prediction inner frame
@@ -247,9 +284,11 @@ class LabelApp:
     def load_previous_image(self):
         if self.index > 0:
             self.index -= 1
-            self.load_image()  # assumes this uses self.current_index
+            self.label_from_file = True  # <-- NEW flag to skip prediction
+            self.load_image()
         else:
             self.label.config(text="🚫 This is the first image.")
+
 
     def save_labels(self):
         label_path = os.path.splitext(self.image_path)[0] + ".txt"
@@ -314,15 +353,17 @@ class LabelApp:
 
     def on_release(self, event):
         if self.drawing_mode and self.current_rect:
-            x1, y1, x2, y2 = self.canvas.coords(self.current_rect)
-            # Only add if some class selected
-            selected_classes = [cls_index for cls_index, var in self.class_vars if var.get()]
-            if selected_classes:
-                # If multiple classes selected, add multiple boxes for now, you can customize as needed
-                for cls_index in selected_classes:
-                    self.boxes.append((x1, y1, x2, y2, cls_index))
+            coords = self.canvas.coords(self.current_rect)
+            if len(coords) == 4:
+                x1, y1, x2, y2 = coords
+                selected_classes = [cls_index for cls_index, var in self.class_vars if var.get()]
+                if selected_classes:
+                    for cls_index in selected_classes:
+                        self.boxes.append((x1, y1, x2, y2, cls_index))
+                else:
+                    self.label.config(text="⚠️ Please select at least one class before drawing boxes.")
             else:
-                self.label.config(text="⚠️ Please select at least one class before drawing boxes.")
+                print("⚠️ Rectangle has invalid or incomplete coordinates, skipping.")
             self.canvas.delete(self.current_rect)
             self.current_rect = None
             self.display_image_and_boxes()
