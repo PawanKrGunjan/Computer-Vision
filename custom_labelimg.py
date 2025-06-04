@@ -1,7 +1,7 @@
 import os
 import shutil
 import cv2
-from tkinter import Tk, Frame, Canvas, Button, Label, Checkbutton, Scrollbar, IntVar, LabelFrame, Y, VERTICAL, RIGHT, LEFT, BOTH, DISABLED, NORMAL
+from tkinter import Tk, Frame, Canvas, Button, Label, Checkbutton, Scrollbar, IntVar, LabelFrame, Y, VERTICAL, RIGHT, LEFT, BOTH, DISABLED, NORMAL,Radiobutton, StringVar
 from PIL import Image, ImageTk
 from ultralytics import YOLO
 
@@ -17,10 +17,13 @@ class MockResults:
 
 
 class LabelApp:
-    def __init__(self, root, image_paths):
+    def __init__(self, root, image_paths, model, class_colors):
         self.root = root
         self.root.title("YOLO Auto Labeling")
         self.image_paths = image_paths
+        self.model = model
+        self.classes=self.model.names
+        self.class_colors=class_colors
         self.index = 0
         self.correct_count = 0
         self.incorrect_count = 0
@@ -37,6 +40,9 @@ class LabelApp:
         self.canvas_height = 720
         self.canvas = Canvas(self.left_panel, width=self.canvas_width, height=self.canvas_height, bg="gray")
         self.canvas.pack(fill=BOTH, expand=True, padx=10, pady=10)
+        # Coordinate label
+        self.coord_label = Label(self.left_panel, text="")
+        self.coord_label.pack()
 
         # Right panel: slimmer and styled
         self.right_panel = Frame(self.main_frame, width=160, bg="#f0f0f0")
@@ -72,12 +78,16 @@ class LabelApp:
         self.class_var_frame = Frame(edit_frame, bg="#fefefe")
         self.class_var_frame.pack(pady=2)
 
-        self.class_vars = []
-        for i, cls_name in enumerate(CLASS_NAMES):
-            var = IntVar(value=0)
-            cb = Checkbutton(self.class_var_frame, text=cls_name, variable=var, bg="#fefefe", font=("Arial", 8))
-            cb.pack(anchor="w", padx=5)
-            self.class_vars.append((i, var))
+        self.class_selection_var = StringVar()
+        self.class_selection_var.set("")  # No class selected initially
+
+        for i, cls_name in self.classes.items():
+            rb = Radiobutton(
+                self.class_var_frame, text=cls_name,
+                variable=self.class_selection_var, value=str(i),
+                bg="#fefefe", font=("Arial", 8), anchor="w"
+            )
+            rb.pack(anchor="w", padx=5)
 
         # List to show manually drawn boxes (you can customize this to your needs)
         self.manual_boxes_vars = []
@@ -112,8 +122,9 @@ class LabelApp:
         # Bind canvas events for drawing
         self.canvas.bind("<Button-1>", self.on_click)
         self.canvas.bind("<B1-Motion>", self.on_drag)
+        self.canvas.bind("<Motion>", self.on_move)
         self.canvas.bind("<ButtonRelease-1>", self.on_release)
-        self.canvas.bind("<Button-3>", self.on_right_click)
+        self.canvas.bind("<Button-3>", self.on_right_click)        
 
         self.root.bind("<Escape>", self.on_escape)
 
@@ -142,9 +153,10 @@ class LabelApp:
         # Clear predictions
         self.clear_prediction_checkboxes()
 
+        txt_path = os.path.splitext(self.image_path)[0] + ".txt"
         # Decide whether to use model or label file
-        if hasattr(self, "label_from_file") and self.label_from_file:
-            self.label_from_file = False
+        if os.path.exists(txt_path): #and hasattr(self, "label_from_file") and self.label_from_file:
+            #self.label_from_file = False
             self.results = self.load_labels_as_results(self.image_path)
         else:
             self.results = model(self.image_path)[0]
@@ -192,7 +204,7 @@ class LabelApp:
         for i, box in enumerate(self.results.boxes):
             x1, y1, x2, y2 = map(int, box.xyxy[0])
             cls = int(box.cls)
-            label = CLASS_NAMES[cls] if cls < len(CLASS_NAMES) else str(cls)
+            label = self.classes[cls] if cls < len(self.classes) else str(cls)
             var = IntVar(value=1)
             cb = Checkbutton(self.pred_inner_frame, text=label, variable=var, font=("Arial", 12), anchor="w", padx=10, width=20)
             cb.pack(anchor="w")
@@ -227,8 +239,8 @@ class LabelApp:
                     y2_s = int(y2 * scale) + self.img_y_offset
 
                     cls = int(box.cls)
-                    label = CLASS_NAMES[cls]
-                    color = CLASS_COLORS.get(cls, (0, 0, 0))
+                    label = self.classes[cls]
+                    color = self.class_colors.get(cls, (0, 0, 0))
                     color_hex = '#%02x%02x%02x' % color
 
                     self.canvas.create_rectangle(x1_s, y1_s, x2_s, y2_s,
@@ -244,10 +256,10 @@ class LabelApp:
 
         # Draw manual boxes always
         for (x1, y1, x2, y2, cls) in self.boxes:
-            color = CLASS_COLORS.get(cls, (255, 0, 0))
+            color = self.class_colors.get(cls, (255, 0, 0))
             color_hex = '#%02x%02x%02x' % color
             self.canvas.create_rectangle(x1, y1, x2, y2, outline=color_hex, width=2)
-            self.canvas.create_text(x1 + 5, y1 + 10, anchor="nw", text=CLASS_NAMES[cls], fill=color_hex, font=("Arial", 10, "bold"))
+            self.canvas.create_text(x1 + 5, y1 + 10, anchor="nw", text=self.classes[cls], fill=color_hex, font=("Arial", 10, "bold"))
 
     def accept(self):
         # Save annotations (manual or predicted)
@@ -284,11 +296,10 @@ class LabelApp:
     def load_previous_image(self):
         if self.index > 0:
             self.index -= 1
-            self.label_from_file = True  # <-- NEW flag to skip prediction
+            #self.label_from_file = True  # <-- NEW flag to skip prediction
             self.load_image()
         else:
             self.label.config(text="🚫 This is the first image.")
-
 
     def save_labels(self):
         label_path = os.path.splitext(self.image_path)[0] + ".txt"
@@ -320,10 +331,6 @@ class LabelApp:
                 bh = abs(y2_img - y1_img) / self.h
                 f.write(f"{cls} {cx} {cy} {bw} {bh}\n")
 
-        #labelled_dir = os.path.join(os.path.dirname(self.image_path), 'labelled')
-        #os.makedirs(labelled_dir, exist_ok=True)
-        #shutil.move(self.image_path, os.path.join(labelled_dir, os.path.basename(self.image_path)))
-        #shutil.move(label_path, os.path.join(labelled_dir, os.path.basename(label_path)))
         print(f"Labeled: {label_path}")
 
     def update_status(self):
@@ -351,17 +358,40 @@ class LabelApp:
         if self.drawing_mode and self.current_rect:
             self.canvas.coords(self.current_rect, self.start_x, self.start_y, event.x, event.y)
 
+    def on_move(self, event):
+        # Update coordinates label
+        self.coord_label.config(text=f"X: {event.x}, Y: {event.y}")
+
+        # Remove previous lines
+        self.canvas.delete("guide")
+
+        # Draw new guide lines with increased thickness
+        self.canvas.create_line(
+            event.x, 0, event.x, self.h,
+            dash=(2, 2),
+            fill='gray',
+            width=2,
+            tags="guide"
+        )
+        self.canvas.create_line(
+            0, event.y, self.w, event.y,
+            dash=(2, 2),
+            fill='gray',
+            width=2,
+            tags="guide"
+        )
+
     def on_release(self, event):
         if self.drawing_mode and self.current_rect:
             coords = self.canvas.coords(self.current_rect)
             if len(coords) == 4:
                 x1, y1, x2, y2 = coords
-                selected_classes = [cls_index for cls_index, var in self.class_vars if var.get()]
-                if selected_classes:
-                    for cls_index in selected_classes:
-                        self.boxes.append((x1, y1, x2, y2, cls_index))
+                selected_class = self.class_selection_var.get()
+                if selected_class != "":
+                    cls_index = int(selected_class)
+                    self.boxes.append((x1, y1, x2, y2, cls_index))
                 else:
-                    self.label.config(text="⚠️ Please select at least one class before drawing boxes.")
+                    self.label.config(text="⚠️ Please select a class before drawing boxes.")
             else:
                 print("⚠️ Rectangle has invalid or incomplete coordinates, skipping.")
             self.canvas.delete(self.current_rect)
@@ -378,6 +408,7 @@ class LabelApp:
         if to_delete is not None:
             del self.boxes[to_delete]
             self.display_image_and_boxes()
+
     def on_escape(self, event):
         if self.drawing_mode:
             # Clear current manual boxes but stay in drawing mode so user can redraw
@@ -393,11 +424,11 @@ class LabelApp:
 if __name__ == "__main__":
     MODEL_PATH = r'./ATCC_MODEL/atcc/weights/best.pt'
     model = YOLO(MODEL_PATH)
-    CLASS_NAMES = ['2 Wheelers', '3 Wheelers', '4 Wheelers', 'LCV', 'Bus', 'Truck', 'Tractor', 'HCM']
+    #NAMES = ['2 Wheelers', '3 Wheelers', '4 Wheelers', 'LCV', 'Bus', 'Truck', 'Tractor', 'HCM']
     # Define your class names here or load from file
-    #CLASS_NAMES = model.names
-    print(CLASS_NAMES)
-    CLASS_COLORS = {
+    cls_name = model.names
+    print(cls_name)
+    cls_colors = {
         0: (255, 0, 0),       # Red
         1: (255, 165, 0),     # Orange
         2: (0, 255, 0),       # Green
@@ -408,11 +439,12 @@ if __name__ == "__main__":
         7: (0, 128, 128)      # Teal
     }
 
-    image_dir = r'./ATCC_LABEL_NEW/Bus'
+    image_dir = r'./ATCC_LABEL_NEW/2W'
 
     image_files = [os.path.join(image_dir, f) for f in os.listdir(image_dir)
                    if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
 
     root = Tk()
-    app = LabelApp(root, sorted(image_files))
+    app = LabelApp(root, sorted(image_files), model, cls_colors)
+    #app = LabelApp(root, sorted(image_files))
     root.mainloop()
